@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import DistributedSampler as _DistributedSampler
 from tools.utils.common import common_utils
 
-from .dataset.semantickitti import SemkittiRangeViewDataset, SemkittiVoxelDataset, SemkittiCylinderDataset, SemkittiFusionDataset
+from .dataset.semantickitti import SemkittiRangeViewDataset, SemkittiVoxelDataset, SemkittiCylinderDataset, SemkittiFusionDataset, SemkittiCarlaVoxelDataset
 from .dataset.waymo import WaymoVoxelDataset, WaymoCylinderDataset, WaymoFusionDataset
 
 __all__ = {
@@ -12,6 +12,9 @@ __all__ = {
     'SemkittiVoxelDataset': SemkittiVoxelDataset,
     'SemkittiCylinderDataset': SemkittiCylinderDataset,
     'SemkittiFusionDataset': SemkittiFusionDataset,
+
+    # SemanticKITTI Carla Convert
+    'SemkittiCarlaVoxelDataset': SemkittiCarlaVoxelDataset,
 
     # Waymo
     'WaymoVoxelDataset': WaymoVoxelDataset,
@@ -69,6 +72,8 @@ def build_dataloader(
             db = 'SemkittiVoxelDataset'
         elif data_cfgs.DATASET == 'waymo':
             db = 'WaymoVoxelDataset'
+        elif data_cfgs.DATASET == "semantickitticarla":
+            db = "SemkittiCarlaVoxelDataset"
         else:
             raise NotImplementedError
     elif modality == 'cylinder':

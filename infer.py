@@ -421,6 +421,7 @@ class Trainer:
             progress_bar = tqdm.tqdm(total=len(dataloader), leave=True, desc='eval', dynamic_ncols=True)
         metric = {}
         metric['hist_list'] = []
+        print(self.cfgs.DATA)
         save_dir = self.cfgs.DATA.OUTPUT_DIR
         os.makedirs(save_dir, exist_ok=True) 
 
@@ -435,7 +436,7 @@ class Trainer:
             
             save_name = (10-len(str(i))) * '0' + str(i)
             save_path = save_dir + save_name + '.npy'
-            np.save(save_path, ret_dict['point_predict'][0])
+            # np.save(save_path, ret_dict['point_predict'][0])
 
             if isinstance(point_predict, torch.Tensor):
                 if point_predict.size() != point_labels.size():
@@ -448,9 +449,46 @@ class Trainer:
             
             if self.rank == 0:
                 progress_bar.update()
+            # if i>=2:
+            #     break
         
         if self.rank == 0:
             progress_bar.close()
+
+        hist_list = metric['hist_list'][:len(dataset)]
+        iou = per_class_iu(sum(hist_list))
+        self.logger.info('Validation per class iou: ')
+
+        for class_name, class_iou in zip(class_names[1:], iou):
+            self.logger_tb.add_scalar(f"{prefix}/{class_name}", class_iou * 100, self.cur_epoch+1)
+        
+        val_miou = np.nanmean(iou) * 100
+        print(val_miou)
+        self.logger_tb.add_scalar(f"{prefix}_miou", val_miou, self.cur_epoch + 1)
+
+        # logger confusion matrix and
+        table_xy = PrettyTable()
+        table_xy.title = 'Validation iou'
+        table_xy.field_names = ["Classes", "IoU"]
+        table_xy.align = 'l'
+        table_xy.add_row(["All", round(val_miou, 4)])
+
+        for i in range(len(class_names[1:])):
+            table_xy.add_row([class_names[i+1], round(iou[i] * 100, 4)])
+        self.logger.info(table_xy)
+
+        dis_matrix = sum(hist_list)
+        table = PrettyTable()
+        table.title = 'Confusion matrix'
+        table.field_names = ["Classes"] + [k for k in class_names[1:]] + ["Points"]
+        table.align = 'l'
+
+        for i in range(len(class_names[1:])):
+            sum_pixel = sum([k for k in dis_matrix[i]])
+            row = [class_names[i + 1]] + [round(k/(sum_pixel +1e-8) * 100, 4) for k in dis_matrix[i]] + [sum_pixel, ]
+            table.add_row(row)
+        
+        self.logger.info(table)
 
         return {}
 

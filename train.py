@@ -83,10 +83,12 @@ def parse_config():
                         help='max number of saved checkpoint')
     parser.add_argument('--merge_all_iters_to_one_epoch', action='store_true', default=False,
                         help='')
+    parser.add_argument('--finetune', action='store_true', default=False,
+                        help='load model in unstrict manner, targeted for finetune scenario')
     # == evaluation configs ==
     parser.add_argument('--eval', action='store_true', default=False,
                         help='only perform evaluate')
-    parser.add_argument('--eval_interval', type=int, default=50,
+    parser.add_argument('--eval_interval', type=int, default=1,
                         help='number of training epochs')
     # == device configs ==
     parser.add_argument('--workers', type=int, default=5,  
@@ -161,7 +163,9 @@ class Trainer:
             num_class = 20
         elif cfgs.DATA.DATASET == 'waymo':
             num_class = 23
-        
+        elif cfgs.DATA.DATASET == 'semantickitticarla':
+            num_class = 29
+
         # set model
         model = build_network(
             model_cfgs=cfgs.MODEL,
@@ -201,7 +205,7 @@ class Trainer:
         if cfgs.LOCAL_RANK == 0:
             print('resuming...')
         if args.ckp is not None:
-            self.resume(args.ckp)
+            self.resume(args.ckp, args.finetune)
         else:
             ckp_list = glob.glob(str(ckp_dir / '*checkpoint_epoch_*.pth'))
             if cfgs.LOCAL_RANK == 0:
@@ -228,6 +232,8 @@ class Trainer:
             self.unique_label = np.array(list(range(19)))  # 0 is ignore
         elif cfgs.DATA.DATASET == 'waymo':
             self.unique_label = np.array(list(range(22)))  # 0 is ignore
+        elif cfgs.DATA.DATASET == 'semantickitticarla':
+            self.unique_label = np.array(list(range(28)))  # 0 is ignore
         else:
             raise NotImplementedError
     
@@ -282,9 +288,12 @@ class Trainer:
 
         return log_dir, ckp_dir, logger, logger_tb, if_dist_train, total_gpus, cfgs
 
-    def save_checkpoint(self):
+    def save_checkpoint(self, name=None):
         trained_epoch = self.cur_epoch + 1
-        ckp_name = self.ckp_dir / ('checkpoint_epoch_%d' % trained_epoch)
+        if name is None:
+            ckp_name = self.ckp_dir / ('checkpoint_epoch_%d' % trained_epoch)
+        else:
+            ckp_name = self.ckp_dir / ('checkpoint_epoch_%d_%s' % (trained_epoch, name))
         checkpoint_state = {}
         checkpoint_state['epoch'] = trained_epoch
         checkpoint_state['it'] = self.it
@@ -300,7 +309,7 @@ class Trainer:
 
         torch.save(checkpoint_state, f"{ckp_name}.pth")
 
-    def resume(self, filename):
+    def resume(self, filename, finetune_load=False):
         if not os.path.isfile(filename):
             raise FileNotFoundError
         self.logger.info(f"==> Loading parameters from checkpoint {filename}")
@@ -310,10 +319,14 @@ class Trainer:
         if cfgs.LOCAL_RANK == 0:
             print('checkpoint["epoch"]:', checkpoint['epoch'])
         self.it = checkpoint['it']
-        self.model.load_params(checkpoint['model_state'], strict=True)
-        self.optimizer.load_state_dict(checkpoint['optimizer_state'])
+        self.model.load_params(checkpoint['model_state'], strict=not finetune_load)
+        if not finetune_load:
+            self.optimizer.load_state_dict(checkpoint['optimizer_state'])
+        else:
+            print("Doing Finetune, optimizer state not loaded")
         self.scaler.load_state_dict(checkpoint['scaler_state'])
         self.scheduler.load_state_dict(checkpoint['scheduler_state'])
+            
         self.logger.info('==> Done')
         return
 
@@ -489,15 +502,15 @@ class Trainer:
         
         self.logger.info(table)
 
-        return {}
+        return {}, val_miou
 
 
     def train(self):
-
+        best_val_miou = 0
         with tqdm.trange(
             self.start_epoch, self.total_epoch, desc='epochs', dynamic_ncols=True, leave=(self.rank==0),
         ) as tbar:
-
+            # print(self.start_epoch, self.total_epoch, self.if_dist_train)
             for cur_epoch in tbar:
                 self.cur_epoch = cur_epoch
                 self.train_one_epoch(tbar, self.cfgs.DATA)
@@ -517,7 +530,10 @@ class Trainer:
                         logger=self.logger,
                         training=False
                     )
-                    self.evaluate(test_loader, "val")
+                    _, val_miou = self.evaluate(test_loader, "val")
+                    if val_miou > best_val_miou:
+                        self.save_checkpoint(name="best")
+                        best_val_miou = val_miou
                     if self.if_dist_train:
                         torch.distributed.barrier()
                     
@@ -561,7 +577,7 @@ def main():
             training=False,
         )
 
-        trainer.evaluate(test_loader, "val")
+        trainer.evaluate(test_loader, "test")
         if trainer.if_dist_train:
             torch.distributed.barrier()
         time.sleep(1)

@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from torch.utils import data
-from .semantickitti_utils import LEARNING_MAP
+from .semantickitti_utils_carla import LEARNING_MAP
 from .LaserMix_semantickitti import lasermix_aug
 from .PolarMix_semantickitti import polarmix
 import random
@@ -16,7 +16,7 @@ def absoluteFilePaths(directory):
             yield os.path.abspath(os.path.join(dirpath, f))
 
 
-class SemantickittiDataset(data.Dataset):
+class SemantickittiCarlaDataset(data.Dataset):
     def __init__(
         self,
         data_cfgs=None,
@@ -26,9 +26,6 @@ class SemantickittiDataset(data.Dataset):
         logger = None,
         if_scribble: bool = False,
     ):
-        # print(class_names)
-        # print(len(class_names))
-
         super().__init__()
         self.data_cfgs = data_cfgs
         self.root_path = root_path
@@ -39,6 +36,7 @@ class SemantickittiDataset(data.Dataset):
         self.train_val = data_cfgs.get('TRAINVAL', False)
         self.augment = data_cfgs.AUGMENT
         self.if_scribble = if_scribble
+        self.point_count = 0
 
         if self.training and not self.train_val:
             self.split = 'train'
@@ -51,11 +49,11 @@ class SemantickittiDataset(data.Dataset):
             self.split = 'test'
 
         if self.split == 'train':
-            self.seqs = ['00', '01', '02'] # ['00', '01', '02', '03', '04', '05', '06', '07', '09', '10']
+            self.seqs = ['00'] # ['00', '01', '02', '03', '04', '05', '06', '07', '09', '10']
         elif self.split == 'val':
             self.seqs = ['08']
         elif self.split == 'train_val':
-            self.seqs = ['00', '01', '02', '08'] #['00', '01', '02', '03', '04', '05', '06', '07', '09', '10', '08']
+            self.seqs = ['00', '08'] #['00', '01', '02', '03', '04', '05', '06', '07', '09', '10', '08']
         elif self.split == 'test':
             self.seqs = ['11'] #['11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21']
         else:
@@ -102,7 +100,15 @@ class SemantickittiDataset(data.Dataset):
         raw_data = np.fromfile(self.annos[index], dtype=np.float32).reshape((-1, 4))
 
         if self.split == 'test':
-            annotated_data = np.expand_dims(np.zeros_like(raw_data[:, 0], dtype=int), axis=1)
+            # annotated_data = np.expand_dims(np.zeros_like(raw_data[:, 0], dtype=int), axis=1)
+            annotated_data = np.fromfile(
+                self.annos[index].replace('velodyne', 'labels')[:-3] + 'label', dtype=np.uint32
+            ).reshape((-1, 1))
+
+            annotated_data = annotated_data & 0xFFFF
+            annotated_data = np.vectorize(LEARNING_MAP.__getitem__)(annotated_data)
+
+            self.point_count += annotated_data.shape[0]
         else:
             if self.if_scribble:  # ScribbleKITTI (weak label)
                 annos = self.annos[index].replace('SemanticKITTI', 'ScribbleKITTI')

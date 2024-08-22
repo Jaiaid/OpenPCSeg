@@ -3,3 +3,5 @@ from .semantickitti_rv import SemkittiRangeViewDataset
 from .semantickitti_cylinder import SemkittiCylinderDataset
 from .semantickitti_voxel import SemkittiVoxelDataset
 from .semantickitti_fusion import SemkittiFusionDataset
+from .semantickitti_carla_voxel import SemkittiCarlaVoxelDataset
+from .semantickitticarla import SemantickittiCarlaDataset

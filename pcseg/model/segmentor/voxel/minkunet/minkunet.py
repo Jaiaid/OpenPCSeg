@@ -190,6 +190,7 @@ class MinkUNet(BaseSegmentor):
         num_class: int,
     ):
         super().__init__(model_cfgs, num_class)
+        self.model_cfgs = model_cfgs
         self.in_feature_dim = model_cfgs.IN_FEATURE_DIM
         self.num_layer = model_cfgs.get('NUM_LAYER', [2, 3, 4, 6, 2, 2, 2, 2])
         self.block = {
@@ -385,39 +386,75 @@ class MinkUNet(BaseSegmentor):
     def forward(self, batch_dict, return_logit=False, return_tta=False):
         x = batch_dict['lidar']
         x.F = x.F[:, :self.in_feature_dim]
-        # x: SparseTensor z: PointTensor
-        z = PointTensor(x.F, x.C.float())
+        if self.model_cfgs.FINETUNE:
+            with torch.no_grad():
+                # x: SparseTensor z: PointTensor
+                z = PointTensor(x.F, x.C.float())
+                x0 = initial_voxelize(z, self.pres, self.vres)
 
-        x0 = initial_voxelize(z, self.pres, self.vres)
+                x0 = self.stem(x0)
+                z0 = voxel_to_point(x0, z, nearest=False)
 
-        x0 = self.stem(x0)
-        z0 = voxel_to_point(x0, z, nearest=False)
+                x1 = self.stage1(x0)
+                x2 = self.stage2(x1)
+                x3 = self.stage3(x2)
+                x4 = self.stage4(x3)
+                z1 = voxel_to_point(x4, z0)
 
-        x1 = self.stage1(x0)
-        x2 = self.stage2(x1)
-        x3 = self.stage3(x2)
-        x4 = self.stage4(x3)
-        z1 = voxel_to_point(x4, z0)
+                x4.F = self.dropout(x4.F)
+                y1 = self.up1[0](x4)
+                y1 = torchsparse.cat([y1, x3])
+                y1 = self.up1[1](y1)
 
-        x4.F = self.dropout(x4.F)
-        y1 = self.up1[0](x4)
-        y1 = torchsparse.cat([y1, x3])
-        y1 = self.up1[1](y1)
+                y2 = self.up2[0](y1)
+                y2 = torchsparse.cat([y2, x2])
+                y2 = self.up2[1](y2)
+                z2 = voxel_to_point(y2, z1)
 
-        y2 = self.up2[0](y1)
-        y2 = torchsparse.cat([y2, x2])
-        y2 = self.up2[1](y2)
-        z2 = voxel_to_point(y2, z1)
+                y2.F = self.dropout(y2.F)
+                y3 = self.up3[0](y2)
+                y3 = torchsparse.cat([y3, x1])
+                y3 = self.up3[1](y3)
+        else:
+            # x: SparseTensor z: PointTensor
+            z = PointTensor(x.F, x.C.float())
+            x0 = initial_voxelize(z, self.pres, self.vres)
 
-        y2.F = self.dropout(y2.F)
-        y3 = self.up3[0](y2)
-        y3 = torchsparse.cat([y3, x1])
-        y3 = self.up3[1](y3)
+            x0 = self.stem(x0)
+            z0 = voxel_to_point(x0, z, nearest=False)
 
-        y4 = self.up4[0](y3)
-        y4 = torchsparse.cat([y4, x0])
-        y4 = self.up4[1](y4)
-        z3 = voxel_to_point(y4, z2)
+            x1 = self.stage1(x0)
+            x2 = self.stage2(x1)
+            x3 = self.stage3(x2)
+            x4 = self.stage4(x3)
+            z1 = voxel_to_point(x4, z0)
+
+            x4.F = self.dropout(x4.F)
+            y1 = self.up1[0](x4)
+            y1 = torchsparse.cat([y1, x3])
+            y1 = self.up1[1](y1)
+
+            y2 = self.up2[0](y1)
+            y2 = torchsparse.cat([y2, x2])
+            y2 = self.up2[1](y2)
+            z2 = voxel_to_point(y2, z1)
+
+            y2.F = self.dropout(y2.F)
+            y3 = self.up3[0](y2)
+            y3 = torchsparse.cat([y3, x1])
+            y3 = self.up3[1](y3)
+
+        if self.model_cfgs.FINETUNE and not self.model_cfgs.FINETUNE_DEEP:
+            with torch.no_grad():
+                y4 = self.up4[0](y3)
+                y4 = torchsparse.cat([y4, x0])
+                y4 = self.up4[1](y4)
+                z3 = voxel_to_point(y4, z2)
+        else:
+            y4 = self.up4[0](y3)
+            y4 = torchsparse.cat([y4, x0])
+            y4 = self.up4[1](y4)
+            z3 = voxel_to_point(y4, z2)
 
         out = self.classifier(torch.cat([z1.F, z2.F, z3.F], dim=1))
 
@@ -427,7 +464,7 @@ class MinkUNet(BaseSegmentor):
             coords_xyz = batch_dict['lidar'].C[:, :3].float()
             offset = batch_dict['offset']
             loss = self.criterion_losses(out, target, xyz=coords_xyz, offset=offset)
-            
+
             ret_dict = {'loss': loss}
             disp_dict = {'loss': loss.item()}
             tb_dict = {'loss': loss.item()}

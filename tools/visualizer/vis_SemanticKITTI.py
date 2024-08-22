@@ -181,7 +181,7 @@ class Visualizer(object):
         self.o3d_visualizer.destroy_window()
         return
 
-def show_rawdata(class_id, pc_path):
+def show_rawdata(pc_path):
     # raw_data = np.load(path)
     raw_data = np.fromfile(pc_path, dtype=np.float32).reshape((-1, 4))
     raw_label = np.fromfile(pc_path.replace('velodyne', 'labels')[:-3] + 'label', dtype=np.uint32).reshape((-1, 1))
@@ -193,13 +193,13 @@ def show_rawdata(class_id, pc_path):
     learning_map_inv = CFG["learning_map_inv"]
 
     color_dict_mapped = dict()
-    for cls in range(20):
+    for cls in range(29):
         color_dict_mapped[cls] = color_dict[learning_map_inv[cls]]
 
-    color_dict_mapped[7] = [0, 128, 128]  # bicyclist
-    color_dict_mapped[12] = [128, 128, 128]  # other-ground
-    color_dict_mapped[14] = [212, 242, 231]  # fence
-    color_dict_mapped[19] = [218, 165, 32]  # traffic-sign
+    # color_dict_mapped[7] = [0, 128, 128]  # bicyclist
+    # color_dict_mapped[12] = [128, 128, 128]  # other-ground
+    # color_dict_mapped[14] = [212, 242, 231]  # fence
+    # color_dict_mapped[19] = [218, 165, 32]  # traffic-sign
 
     raw_label = raw_label & 0xFFFF  # delete high 16 digits binary
     raw_label = np.vectorize(learning_map.__getitem__)(raw_label).reshape((-1,1))
@@ -213,13 +213,15 @@ def show_rawdata(class_id, pc_path):
         points = raw_data[:, 0:3]
     else:
         points = raw_data[:, 3:6]
+
     color_points = np.concatenate((points, colors), axis=1)
     vis_er = Visualizer(color_points)
-    vis_er.show(save_path="pic.ply")
+    vis_er.show(save_path="image/"+os.path.basename(pc_path)+".png")
 
 
 if __name__ == "__main__":
-    pc_path = '/home/PJLAB/liuyouquan/Downloads/semantic-kitti/dataset/sequences/08/velodyne/002564.bin'
-    label_path = '/home/PJLAB/liuyouquan/Downloads/semantic-kitti/dataset/sequences/08/velodyne/002564.label'
-    show_rawdata(class_id, pc_path)
+    pc_path = '/home/jm5071/data/dataset/semantickitti/dataset/sample_sequences/all/velodyne/{0}.bin'
+    label_path = '/home/jm5071/data/dataset/semantickitti/dataset/sample_sequences/all/labels/{0}.label'
+    for i in range(1, 101):
+        show_rawdata(pc_path.format(i))
 

@@ -70,34 +70,34 @@ color_map = {
 
 LEARNING_MAP = {
     0: 0,  # "unlabeled"
-    1: 1,  # "outlier" mapped to "unlabeled" --------------------------mapped
-    2: 2,  # "car"
-    3: 3,  # "bicycle"
-    4: 4,  # "bus" mapped to "other-vehicle" --------------------------mapped
-    5: 5,  # "motorcycle"
-    6: 6,  # "on-rails" mapped to "other-vehicle" ---------------------mapped
-    7: 7,  # "truck"
-    8: 8,  # "other-vehicle"
-    9: 9,  # "person"
-    10: 10,  # "bicyclist"
-    11: 11,  # "motorcyclist"
-    12: 12,  # "road"
-    13: 13,  # "parking"
-    14: 14,  # "sidewalk"
-    15: 15,  # "other-ground"
-    16: 16,  # "building"
-    17: 97,  # "fence"
-    18: 18,  # "other-structure" mapped to "unlabeled" ------------------mapped
-    19: 19,  # "lane-marking" to "road" ---------------------------------mapped
-    20: 20,  # "vegetation"
-    21: 21,  # "trunk"
-    22: 22,  # "terrain"
-    23: 23,  # "pole"
-    24: 24,  # "traffic-sign"
-    25: 25,  # "other-object" to "unlabeled" ----------------------------mapped
-    26: 26,  # "moving-car" to "car" ------------------------------------mapped
-    27: 27,  # "moving-bicyclist" to "bicyclist" ------------------------mapped
-    28: 28,  # "moving-person" to "person" ------------------------------mapped
+    1: 1,  # "building" mapped to "unlabeled" --------------------------mapped
+    2: 2,  # "fence"
+    3: 3,  # "other"
+    4: 4,  # "pedestrian" mapped to "other-vehicle" --------------------------mapped
+    5: 5,  # "pole"
+    6: 7,  # "roadline" mapped to "road" ---------------------mapped
+    7: 7,  # "road"
+    8: 8,  # "sidewalk"
+    9: 9,  # "vegetation"
+    10: 10,  # "vehicles"
+    11: 11,  # "wall"
+    12: 5,  # "trafficsign" mapped to "pole"
+    13: 3,  # "sky" mapped to "other"
+    14: 8,  # "ground" mapped to "sidewalk"
+    15: 15,  # "bridge"
+    16: 16,  # "railtrack"
+    17: 11,  # "guardrail" mapped to "wall"
+    18: 18,  # "trafficlight"
+    19: 19,  # "static" to "building"
+    20: 20,  # "dynamic"
+    21: 21,  # "water"
+    22: 8,  # "terrain" mapped to "sidewalk"
+    23: 3,  # "other2" mapped to "other"
+    24: 3,  # "other3" mapped to "other"
+    25: 3,  # "other4" mapped to "other"
+    26: 3,  # "other5" mapped to "other"
+    27: 3,  # "other6" mapped to "other"
+    28: 3,  # "other7" mapped to "other"
 }
 
 LEARNING_MAP_INV = {  # inverse of previous map

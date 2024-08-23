@@ -27,9 +27,9 @@ class SemkittiCarlaVoxelDataset(data.Dataset):
         self.training = training
         self.class_names = [
             "Unlabeled",  # ignored
-            "Roads", "SideWalks", "Building", "Wall", "Fence", "Pole", "TrafficLight", "TrafficSign", "Vegetation", "Terrain",
-            "Sky", "Pedestrian", "Rider", "Car", "Truck", "Bus", "Train", "Motorcycle", "Bicycle", "Static", "Dynamic", "Other",
-            "Water", "RoadLine", "Ground", "Bridge", "RailTrack", "GuardRail"
+            "Building", "Fence", "Other", "Pedestrian", "Pole", "RoadLine", "Road", "SideWalk", "Vegetation", "Vehicles",
+            "Wall", "TrafficSign", "Sky", "Ground", "Bridge", "RailTrack", "GuardRail", "TrafficLight", "Static", "Dynamic", "Water",
+            "Terrain", "Other2", "Other3", "Other4", "Other5", "Other6", "Other7"
         ]
         self.root_path = root_path if root_path is not None else self.data_cfgs.DATA_PATH
         self.logger = logger

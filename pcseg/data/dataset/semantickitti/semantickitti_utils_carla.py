@@ -71,7 +71,7 @@ color_map = {
 LEARNING_MAP = {
     0: 0,  # "unlabeled"
     1: 1,  # "building" mapped to "unlabeled" --------------------------mapped
-    2: 2,  # "fence"
+    2: 9,  # "fence" mapped to "vegetation"
     3: 3,  # "other"
     4: 4,  # "pedestrian" mapped to "other-vehicle" --------------------------mapped
     5: 5,  # "pole"
@@ -88,7 +88,7 @@ LEARNING_MAP = {
     16: 16,  # "railtrack"
     17: 11,  # "guardrail" mapped to "wall"
     18: 18,  # "trafficlight"
-    19: 19,  # "static" to "building"
+    19: 1,  # "static" to "building"
     20: 20,  # "dynamic"
     21: 21,  # "water"
     22: 8,  # "terrain" mapped to "sidewalk"

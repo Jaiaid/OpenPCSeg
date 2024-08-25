@@ -416,6 +416,8 @@ class Trainer:
                     for key, val in tb_dict.items():
                         self.logger_tb.add_scalar('train/' + key, val, self.it)
 
+        if self.rank == 0:
+            print("Loss value at Epoch {0}: {1}".format(self.cur_epoch, loss.item()))
         if 'Range' not in data_cfg.DATASET:
             self.loader.dataset.point_cloud_dataset.resample()  
         if self.rank == 0:
@@ -491,6 +493,8 @@ class Trainer:
         for i in range(len(class_names[1:])):
             table_xy.add_row([class_names[i+1], round(iou[i] * 100, 4)])
         self.logger.info(table_xy)
+        if self.rank == 0:
+            print(table_xy)
 
         dis_matrix = sum(hist_list)
         table = PrettyTable()
@@ -504,6 +508,8 @@ class Trainer:
             table.add_row(row)
         
         self.logger.info(table)
+        if self.rank == 0:
+            print(table)
 
         return {}, val_miou
 

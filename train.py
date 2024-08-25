@@ -220,6 +220,7 @@ class Trainer:
             self.model = nn.parallel.DistributedDataParallel(
                 self.model,
                 device_ids=[cfgs.LOCAL_RANK % torch.cuda.device_count()],
+                find_unused_parameters=True
             )
         self.model.train()
         
@@ -243,6 +244,8 @@ class Trainer:
             if_dist_train = False
             total_gpus = 1
         else:
+            os.environ['MASTER_ADDR'] = 'localhost'
+            os.environ['MASTER_PORT'] = '46000'
             total_gpus, cfgs.LOCAL_RANK = getattr(common_utils, 'init_dist_%s' % args.launcher)(
                 args.tcp_port, args.local_rank, backend='nccl'
             )
@@ -458,9 +461,9 @@ class Trainer:
         if self.if_dist_train:
             rank, world_size = common_utils.get_dist_info()
             metric = common_utils.merge_results_dist([metric], world_size, tmpdir=result_dir / 'tmpdir')
-        
+
         if self.rank != 0:
-            return {}
+            return {}, 0
         
         if self.if_dist_train:
             for key, val in metric[0].items():
@@ -531,7 +534,7 @@ class Trainer:
                         training=False
                     )
                     _, val_miou = self.evaluate(test_loader, "val")
-                    if val_miou > best_val_miou:
+                    if val_miou > best_val_miou and self.rank==0:
                         self.save_checkpoint(name="best")
                         best_val_miou = val_miou
                     if self.if_dist_train:

@@ -167,9 +167,9 @@ def init_dist_pytorch(tcp_port, local_rank, backend='nccl'):
 
     dist.init_process_group(
         backend=backend,
-        # init_method='tcp://127.0.0.1:%d' % tcp_port,
-        # rank=local_rank,
-        # world_size=num_gpus
+        init_method='env://', #% tcp_port,
+        rank=local_rank,
+        world_size=num_gpus
     )
     rank = dist.get_rank()
     return num_gpus, rank
@@ -205,6 +205,7 @@ def merge_results_dist(result_part, size, tmpdir):
     pickle.dump(result_part, open(os.path.join(tmpdir, 'result_part_{}.pkl'.format(rank)), 'wb'))
     dist.barrier()
 
+    print(rank, world_size)
     if rank != 0:
         return None
 

@@ -91,7 +91,7 @@ def parse_config():
     parser.add_argument('--eval_interval', type=int, default=1,
                         help='number of training epochs')
     # == device configs ==
-    parser.add_argument('--workers', type=int, default=5,  
+    parser.add_argument('--workers', type=int, default=0,  
                         help='number of workers for dataloader') 
     parser.add_argument('--local_rank', type=int, default=0,
                         help='local rank for distributed training')
@@ -445,6 +445,16 @@ class Trainer:
             point_predict = ret_dict['point_predict']
             point_labels = ret_dict['point_labels']
 
+            # save the predicted points
+            # assuming there are "predicted" directory in current working directory 
+
+            # first extract the name
+            # this complexity as file accessed like this 1, 10, 100, 101, 102...
+            bname_of_velodyne = batch_dict['name'][0].split("/")[-1][:-4]
+            with open("predicted/{0}.txt".format(bname_of_velodyne), "w") as fout:
+                for j, point in enumerate(point_predict[0]):
+                    fout.write("{0},{1}\n".format(point, 0))
+
             if isinstance(point_predict, torch.Tensor):
                 if point_predict.size() != point_labels.size():
                     point_predict = nn.functional.softmax(point_predict, dim=1).argmax(dim=1)
@@ -453,7 +463,7 @@ class Trainer:
 
             for pred, label in zip(point_predict, point_labels):
                 metric['hist_list'].append(fast_hist_crop(pred, label, self.unique_label))
-            
+
             if self.rank == 0:
                 progress_bar.update()
         

@@ -2,6 +2,7 @@ import copy
 import numpy as np
 import yaml
 import os
+import argparse
 
 try:
     import open3d as o3d
@@ -122,7 +123,7 @@ class Visualizer(object):
 
         # draw boxes
         if bbox3d is not None:
-            _draw_bboxes(bbox3d, self.o3d_visualizer, self.points_colors,
+            draw_bboxes(bbox3d, self.o3d_visualizer, self.points_colors,
                          self.pcd, bbox_color, points_in_box_color, rot_axis,
                          center_mode, mode)
 
@@ -142,7 +143,7 @@ class Visualizer(object):
             bbox_color = self.bbox_color
         if points_in_box_color is None:
             points_in_box_color = self.points_in_box_color
-        _draw_bboxes(bbox3d, self.o3d_visualizer, self.points_colors, self.pcd,
+        draw_bboxes(bbox3d, self.o3d_visualizer, self.points_colors, self.pcd,
                      bbox_color, points_in_box_color, self.rot_axis,
                      self.center_mode, self.mode)
 
@@ -175,26 +176,36 @@ class Visualizer(object):
 
         self.o3d_visualizer.run()
 
-        if save_path is not None:
-            self.o3d_visualizer.capture_screen_image(save_path)
+        # if save_path is not None:
+        #     self.o3d_visualizer.capture_screen_image(save_path)
 
         self.o3d_visualizer.destroy_window()
         return
 
-def show_rawdata(pc_path):
+def show_rawdata(pc_path, label_path):
     # raw_data = np.load(path)
     raw_data = np.fromfile(pc_path, dtype=np.float32).reshape((-1, 4))
-    raw_label = np.fromfile(pc_path.replace('velodyne', 'labels')[:-3] + 'label', dtype=np.uint32).reshape((-1, 1))
+    if label_path[-4:] == ".txt":
+        with open(label_path) as file:
+            lines = file.readlines()
+            labels = []
+            for line in lines:
+                lower_half, upper_half = map(int, line.split(','))  # Extract the two columns
+                label = (upper_half << 16) | lower_half   # Combine the upper and lower halves into a 32-bit label
+                labels.append(label)
+        raw_label = np.array(labels, dtype=np.uint32).reshape((-1, 1))  # Assuming 32-bit labels
+    else: 
+        raw_label = np.fromfile(label_path, dtype=np.uint32).reshape((-1, 1))
+    print(raw_label.shape)
     with open('./semantic-kitti.yaml', 'r') as stream:
         CFG = yaml.safe_load(stream)
     learning_map = CFG['learning_map']
 
     color_dict = CFG["color_map"]
-    learning_map_inv = CFG["learning_map_inv"]
 
     color_dict_mapped = dict()
     for cls in range(29):
-        color_dict_mapped[cls] = color_dict[learning_map_inv[cls]]
+        color_dict_mapped[cls] = color_dict[learning_map[cls]]
 
     # color_dict_mapped[7] = [0, 128, 128]  # bicyclist
     # color_dict_mapped[12] = [128, 128, 128]  # other-ground
@@ -213,15 +224,22 @@ def show_rawdata(pc_path):
         points = raw_data[:, 0:3]
     else:
         points = raw_data[:, 3:6]
-
+    print(points.shape, colors.shape)
     color_points = np.concatenate((points, colors), axis=1)
     vis_er = Visualizer(color_points)
     vis_er.show(save_path="image/"+os.path.basename(pc_path)+".png")
 
 
 if __name__ == "__main__":
-    pc_path = '/home/jm5071/data/dataset/semantickitti/dataset/sample_sequences/all/velodyne/{0}.bin'
-    label_path = '/home/jm5071/data/dataset/semantickitti/dataset/sample_sequences/all/labels/{0}.label'
-    for i in range(1, 101):
-        show_rawdata(pc_path.format(i))
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("--velodyne-file", "-bin", type=str, help="velodyne bin file")
+    argparser.add_argument("--velodyne-label", "-label", type=str, help="velodyne label file")
+    argparser.add_argument("--yaml-file", "-yaml", type=str, help="yaml file containing color information", default="semantic-kitti.yaml")
+
+    args = argparser.parse_args()
+
+    pc_path = args.velodyne_file
+    label_path = args.velodyne_label
+
+    show_rawdata(pc_path, label_path)
 

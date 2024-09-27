@@ -4,7 +4,7 @@ DATA:
     DATASET: 'semantickitticarla'  # choices: ['nuscenes', 'semantickitti', 'scribblekitti']
     OUTPUT_DIR: '.'
     PETRELOSS_CONFIG: None
-    DATA_PATH: '/home/jm5071/autonmous_vehicle_datacompression/semantic_segmentation/dataset/semantic_randomized/'  # hint: customize your data path
+    DATA_PATH: # hint: customize your data path
     VOXEL_SIZE: 0.05
     AUGMENT: 'GlobalAugment_LP'  # choices: ['GlobalAugment', 'GlobalAugment_LP']
     NUM_POINTS: 1000000 #412771985

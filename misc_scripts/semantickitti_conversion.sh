@@ -2,8 +2,8 @@
 
 ROOT_DIR=`pwd`
 DATAROOT_DIR=2
-PCD2BIN_CONVERTER_EXEC=~/Desktop/autonomous_vehicle_datacompression/sementic_segmentation/Tools_RosBag2KITTI/pcd2bin/build/pcd2bin
-LABEL_CONVERSION_SCRIPT=~/Desktop/autonomous_vehicle_datacompression/sementic_segmentation/semlabel_conversion.py
+PCD2BIN_CONVERTER_EXEC=$ROOT_DIR/pcd2bin
+LABEL_CONVERSION_SCRIPT=$ROOT_DIR/misc_scripts/semlabel_conversion.py
 
 pushd $DATAROOT_DIR
 

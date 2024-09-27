@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ROOT_DIR=`pwd`
-DATAROOT_DIR=~/data/dataset/semantickitti/semantic_eval/2/
-LABEL_CONVERSION_SCRIPT=~/Desktop/autonomous_vehicle_datacompression/sementic_segmentation/labelfile_regen_nnsearch.py
+DATAROOT_DIR=~/data/
+LABEL_CONVERSION_SCRIPT=$ROOT_DIR/misc_scripts/labelfile_regen_nnsearch.py
 
 # activate venv for open3d
 source ~/Desktop/autonomous_vehicle_datacompression/sementic_segmentation/venv_2dpass/bin/activate

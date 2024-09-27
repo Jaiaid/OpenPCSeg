@@ -27,8 +27,8 @@ if __name__=="__main__":
                 label = (upper_half << 16) | lower_half   # Combine the upper and lower halves into a 32-bit label
                 labels.append(label)
 
-#            labels_array = np.array(labels, dtype=np.uint32)  # Assuming 32-bit labels
-#            labels_array.tofile(os.path.join(args.output_dir, file_bname + ".label"))
+            labels_array = np.array(labels, dtype=np.uint32)  # Assuming 32-bit labels
+            labels_array.tofile(os.path.join(args.output_dir, file_bname + ".label"))
     print(label_dict, len(label_dict))
     sum = 0
     for i in label_dict:
